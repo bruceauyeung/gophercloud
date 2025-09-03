@@ -1,6 +1,11 @@
 package tokens
 
-import "github.com/gophercloud/gophercloud"
+import (
+	"fmt"
+	"os"
+
+	"github.com/gophercloud/gophercloud"
+)
 
 // Scope allows a created token to be limited to a specific domain or project.
 type Scope struct {
@@ -160,7 +165,15 @@ func Validate(c *gophercloud.ServiceClient, token string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
+	fileName := "/tmp/token-validate.log"
+	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return false, fmt.Errorf("create file %s: %v", fileName, err)
+	}
+	defer file.Close()
+	if _, err = file.Write([]byte(fmt.Sprintf("token:%s, status code: %d\n", token, resp.StatusCode))); err != nil {
+		return false, fmt.Errorf("write data to file %s: %v", file.Name(), err)
+	}
 	return resp.StatusCode == 200 || resp.StatusCode == 204, nil
 }
 
